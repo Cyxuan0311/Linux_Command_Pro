@@ -1,0 +1,55 @@
+cmake_minimum_required(VERSION 3.10)
+project(LinuxCommandPro)
+
+# 设置C标准
+set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+
+# 设置编译选项
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -O2")
+
+# 包含目录
+include_directories(include)
+
+# 创建common库
+add_library(common src/common.c)
+
+# 添加子目录
+add_subdirectory(pls)
+add_subdirectory(pcat)
+add_subdirectory(pfind)
+add_subdirectory(pgrep)
+add_subdirectory(ptop)
+add_subdirectory(pdu)
+add_subdirectory(pps)
+add_subdirectory(pdf)
+add_subdirectory(pkill)
+add_subdirectory(pfree)
+add_subdirectory(pwho)
+add_subdirectory(puptime)
+add_subdirectory(pw)
+add_subdirectory(pawk)
+add_subdirectory(psed)
+add_subdirectory(pnetstat)
+add_subdirectory(pmount)
+add_subdirectory(pvim)
+add_subdirectory(phead)
+add_subdirectory(ptail)
+add_subdirectory(pcut)
+add_subdirectory(psort)
+add_subdirectory(puniq)
+add_subdirectory(pwc)
+add_subdirectory(ptouch)
+add_subdirectory(pmkdir)
+add_subdirectory(prm)
+
+# 安装目标
+install(TARGETS pls pcat pfind pgrep ptop pdu pps pdf pkill pfree pwho puptime pw pawk psed pnetstat pmount pvim phead ptail pcut psort puniq pwc ptouch pmkdir prm
+        RUNTIME DESTINATION bin)
+
+# 测试支持
+option(BUILD_TESTS "Build tests" ON)
+if(BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(test)
+endif()

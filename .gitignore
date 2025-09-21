@@ -1,0 +1,31 @@
+todo.txt
+# 构建目录
+build/
+test_build/
+
+# 测试临时文件
+tmp/
+
+# 编译产物
+*.o
+*.a
+*.so
+*.exe
+
+# IDE文件
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 日志文件
+*.log
+
+# 临时文件
+*.tmp
+*.temp

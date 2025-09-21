@@ -42,9 +42,22 @@ add_subdirectory(pwc)
 add_subdirectory(ptouch)
 add_subdirectory(pmkdir)
 add_subdirectory(prm)
+add_subdirectory(dsa)
+add_subdirectory(pdate)
+add_subdirectory(pecho)
+add_subdirectory(pcal)
+add_subdirectory(pwhich)
+add_subdirectory(pbc)
+add_subdirectory(pseq)
+add_subdirectory(pman)
+add_subdirectory(pwhereis)
+add_subdirectory(pwhatis)
+add_subdirectory(pshuf)
+add_subdirectory(pyes)
+add_subdirectory(ptee)
 
 # 安装目标
-install(TARGETS pls pcat pfind pgrep ptop pdu pps pdf pkill pfree pwho puptime pw pawk psed pnetstat pmount pvim phead ptail pcut psort puniq pwc ptouch pmkdir prm
+install(TARGETS pls pcat pfind pgrep ptop pdu pps pdf pkill pfree pwho puptime pw pawk psed pnetstat pmount pvim phead ptail pcut psort puniq pwc ptouch pmkdir prm dsa pdate pecho pcal pwhich pbc pseq pman pwhereis pwhatis pshuf pyes ptee
         RUNTIME DESTINATION bin)
 
 # 测试支持

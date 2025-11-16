@@ -10,15 +10,18 @@
 #define MAX_LINE_LENGTH 1024
 #define TAB_WIDTH 4
 
-// 语法高亮颜色定义
-#define KEYWORD_COLOR    COLOR_BLUE
-#define STRING_COLOR     COLOR_GREEN
-#define COMMENT_COLOR    COLOR_YELLOW
-#define NUMBER_COLOR     COLOR_MAGENTA
-#define FUNCTION_COLOR   COLOR_CYAN
-#define TYPE_COLOR       COLOR_RED
-#define PREPROCESSOR_COLOR COLOR_MAGENTA
-#define OPERATOR_COLOR   COLOR_WHITE
+// 语言特定的颜色方案结构
+typedef struct {
+    const char *keyword;      // 关键字颜色
+    const char *string;       // 字符串颜色
+    const char *comment;      // 注释颜色
+    const char *number;       // 数字颜色
+    const char *function;     // 函数颜色
+    const char *type;         // 类型颜色
+    const char *preprocessor; // 预处理器颜色
+    const char *operator;     // 操作符颜色
+    const char *special;      // 特殊语法颜色（用于Markdown等）
+} ColorScheme;
 
 // 语言类型枚举
 typedef enum {
@@ -26,6 +29,9 @@ typedef enum {
     LANG_CPP,
     LANG_GO,
     LANG_PYTHON,
+    LANG_JAVA,
+    LANG_SHELL,
+    LANG_MARKDOWN,
     LANG_CUDA,
     LANG_UNKNOWN
 } LanguageType;
@@ -77,6 +83,33 @@ const char *python_keywords[] = {
     NULL
 };
 
+// Java关键字
+const char *java_keywords[] = {
+    "abstract", "assert", "boolean", "break", "byte", "case", "catch", "char",
+    "class", "const", "continue", "default", "do", "double", "else", "enum",
+    "extends", "final", "finally", "float", "for", "goto", "if", "implements",
+    "import", "instanceof", "int", "interface", "long", "native", "new", "package",
+    "private", "protected", "public", "return", "short", "static", "strictfp",
+    "super", "switch", "synchronized", "this", "throw", "throws", "transient",
+    "try", "void", "volatile", "while", "true", "false", "null", "String",
+    "Integer", "Double", "Float", "Boolean", "Character", "Byte", "Short",
+    "Long", "Object", "System", "Math", "ArrayList", "HashMap", "List", "Map",
+    "Set", "Iterator", NULL
+};
+
+// Shell脚本关键字
+const char *shell_keywords[] = {
+    "if", "then", "else", "elif", "fi", "case", "esac", "for", "select",
+    "while", "until", "do", "done", "in", "function", "time", "coproc",
+    "[", "[[", "]]", "test", "true", "false", "break", "continue", "return",
+    "exit", "export", "local", "readonly", "declare", "typeset", "alias",
+    "unalias", "set", "unset", "shift", "getopts", "eval", "exec", "command",
+    "builtin", "let", "echo", "printf", "read", "cd", "pwd", "pushd", "popd",
+    "dirs", "hash", "bind", "help", "enable", "disable", "source", "dot",
+    "type", "trap", "kill", "wait", "jobs", "fg", "bg", "suspend", "logout",
+    "history", "fc", NULL
+};
+
 // CUDA关键字
 const char *cuda_keywords[] = {
     "auto", "break", "case", "char", "const", "continue", "default", "do",
@@ -99,10 +132,134 @@ const char *cuda_keywords[] = {
     "NULL", "true", "false", NULL
 };
 
+// 获取语言特定的颜色方案
+ColorScheme get_color_scheme(LanguageType lang) {
+    ColorScheme scheme;
+    
+    switch (lang) {
+        case LANG_C:
+            scheme.keyword = COLOR_BLUE;
+            scheme.string = COLOR_GREEN;
+            scheme.comment = COLOR_YELLOW;
+            scheme.number = COLOR_MAGENTA;
+            scheme.function = COLOR_CYAN;
+            scheme.type = COLOR_RED;
+            scheme.preprocessor = COLOR_MAGENTA;
+            scheme.operator = COLOR_WHITE;
+            scheme.special = COLOR_CYAN;
+            break;
+        case LANG_CPP:
+            scheme.keyword = COLOR_BLUE;
+            scheme.string = COLOR_GREEN;
+            scheme.comment = COLOR_YELLOW;
+            scheme.number = COLOR_MAGENTA;
+            scheme.function = COLOR_CYAN;
+            scheme.type = COLOR_RED;
+            scheme.preprocessor = COLOR_MAGENTA;
+            scheme.operator = COLOR_WHITE;
+            scheme.special = COLOR_CYAN;
+            break;
+        case LANG_GO:
+            scheme.keyword = COLOR_BLUE;
+            scheme.string = COLOR_GREEN;
+            scheme.comment = COLOR_YELLOW;
+            scheme.number = COLOR_MAGENTA;
+            scheme.function = COLOR_CYAN;
+            scheme.type = COLOR_RED;
+            scheme.preprocessor = COLOR_MAGENTA;
+            scheme.operator = COLOR_WHITE;
+            scheme.special = COLOR_CYAN;
+            break;
+        case LANG_PYTHON:
+            scheme.keyword = COLOR_BLUE;
+            scheme.string = COLOR_GREEN;
+            scheme.comment = COLOR_YELLOW;
+            scheme.number = COLOR_MAGENTA;
+            scheme.function = COLOR_CYAN;
+            scheme.type = COLOR_RED;
+            scheme.preprocessor = COLOR_MAGENTA;
+            scheme.operator = COLOR_WHITE;
+            scheme.special = COLOR_CYAN;
+            break;
+        case LANG_JAVA:
+            scheme.keyword = COLOR_BLUE BOLD;
+            scheme.string = COLOR_GREEN;
+            scheme.comment = COLOR_YELLOW;
+            scheme.number = COLOR_MAGENTA;
+            scheme.function = COLOR_CYAN;
+            scheme.type = COLOR_RED BOLD;
+            scheme.preprocessor = COLOR_MAGENTA;
+            scheme.operator = COLOR_WHITE;
+            scheme.special = COLOR_CYAN;
+            break;
+        case LANG_SHELL:
+            scheme.keyword = COLOR_BLUE BOLD;
+            scheme.string = COLOR_GREEN;
+            scheme.comment = COLOR_YELLOW;
+            scheme.number = COLOR_MAGENTA;
+            scheme.function = COLOR_CYAN;
+            scheme.type = COLOR_RED;
+            scheme.preprocessor = COLOR_MAGENTA BOLD;
+            scheme.operator = COLOR_WHITE;
+            scheme.special = COLOR_CYAN;
+            break;
+        case LANG_MARKDOWN:
+            scheme.keyword = COLOR_BLUE;
+            scheme.string = COLOR_GREEN;
+            scheme.comment = COLOR_YELLOW;
+            scheme.number = COLOR_MAGENTA;
+            scheme.function = COLOR_CYAN BOLD;
+            scheme.type = COLOR_RED BOLD;
+            scheme.preprocessor = COLOR_MAGENTA;
+            scheme.operator = COLOR_WHITE;
+            scheme.special = COLOR_CYAN BOLD;
+            break;
+        case LANG_CUDA:
+            scheme.keyword = COLOR_BLUE;
+            scheme.string = COLOR_GREEN;
+            scheme.comment = COLOR_YELLOW;
+            scheme.number = COLOR_MAGENTA;
+            scheme.function = COLOR_CYAN;
+            scheme.type = COLOR_RED;
+            scheme.preprocessor = COLOR_MAGENTA;
+            scheme.operator = COLOR_WHITE;
+            scheme.special = COLOR_CYAN;
+            break;
+        default:
+            scheme.keyword = COLOR_WHITE;
+            scheme.string = COLOR_GREEN;
+            scheme.comment = COLOR_YELLOW;
+            scheme.number = COLOR_MAGENTA;
+            scheme.function = COLOR_CYAN;
+            scheme.type = COLOR_RED;
+            scheme.preprocessor = COLOR_MAGENTA;
+            scheme.operator = COLOR_WHITE;
+            scheme.special = COLOR_CYAN;
+            break;
+    }
+    
+    return scheme;
+}
+
 // 检测文件语言类型
 LanguageType detect_language(const char *filename) {
     const char *ext = strrchr(filename, '.');
-    if (!ext) return LANG_UNKNOWN;
+    if (!ext) {
+        // 检查是否有shebang行来判断shell脚本
+        FILE *f = fopen(filename, "r");
+        if (f) {
+            char first_line[256];
+            if (fgets(first_line, sizeof(first_line), f)) {
+                if (strstr(first_line, "#!/bin/bash") || strstr(first_line, "#!/bin/sh") ||
+                    strstr(first_line, "#!/usr/bin/bash") || strstr(first_line, "#!/usr/bin/sh")) {
+                    fclose(f);
+                    return LANG_SHELL;
+                }
+            }
+            fclose(f);
+        }
+        return LANG_UNKNOWN;
+    }
     
     ext++; // 跳过点号
     
@@ -116,6 +273,11 @@ LanguageType detect_language(const char *filename) {
     if (strcmp(ext, "go") == 0) return LANG_GO;
     if (strcmp(ext, "py") == 0) return LANG_PYTHON;
     if (strcmp(ext, "pyw") == 0) return LANG_PYTHON;
+    if (strcmp(ext, "java") == 0) return LANG_JAVA;
+    if (strcmp(ext, "sh") == 0) return LANG_SHELL;
+    if (strcmp(ext, "bash") == 0) return LANG_SHELL;
+    if (strcmp(ext, "md") == 0) return LANG_MARKDOWN;
+    if (strcmp(ext, "markdown") == 0) return LANG_MARKDOWN;
     if (strcmp(ext, "cu") == 0) return LANG_CUDA;
     if (strcmp(ext, "cuh") == 0) return LANG_CUDA;
     
@@ -129,6 +291,8 @@ const char **get_keywords(LanguageType lang) {
         case LANG_CPP: return cpp_keywords;
         case LANG_GO: return go_keywords;
         case LANG_PYTHON: return python_keywords;
+        case LANG_JAVA: return java_keywords;
+        case LANG_SHELL: return shell_keywords;
         case LANG_CUDA: return cuda_keywords;
         default: return c_keywords;
     }
@@ -180,7 +344,10 @@ int is_string(const char *str) {
 }
 
 // 检查是否为注释
-int is_comment(const char *str) {
+int is_comment(const char *str, LanguageType lang) {
+    if (lang == LANG_PYTHON || lang == LANG_SHELL || lang == LANG_MARKDOWN) {
+        return str[0] == '#';
+    }
     return (str[0] == '/' && str[1] == '/') ||
            (str[0] == '/' && str[1] == '*');
 }
@@ -258,52 +425,513 @@ int is_type_definition(const char *str, LanguageType lang) {
         }
     }
     
+    // Java特有类型
+    if (lang == LANG_JAVA) {
+        const char *java_types[] = {
+            "String", "Integer", "Double", "Float", "Boolean", "Character", "Byte",
+            "Short", "Long", "Object", "System", "Math", "ArrayList", "HashMap",
+            "List", "Map", "Set", "Iterator", "Collection", "Exception", "Error",
+            "Throwable", "Runnable", "Thread", NULL
+        };
+        
+        for (int i = 0; java_types[i] != NULL; i++) {
+            if (strcmp(str, java_types[i]) == 0) {
+                return 1;
+            }
+        }
+    }
+    
     return 0;
 }
 
-// 高级语法高亮
-void highlight_line(const char *line, int line_num, int show_numbers, LanguageType lang) {
+// 检查是否为Markdown语法元素
+int is_markdown_syntax(const char *line, int *start, int *end) {
+    int len = strlen(line);
+    *start = -1;
+    *end = -1;
+    
+    // 检查标题 (# ## ### 等)
+    if (len > 0 && line[0] == '#') {
+        int i = 0;
+        while (i < len && line[i] == '#') i++;
+        if (i > 0 && i <= 6 && (line[i] == ' ' || line[i] == '\0')) {
+            *start = 0;
+            *end = i;
+            return 1; // 标题标记
+        }
+    }
+    
+    // 检查代码块标记 (```)
+    if (strncmp(line, "```", 3) == 0) {
+        *start = 0;
+        *end = 3;
+        return 2; // 代码块标记
+    }
+    
+    // 检查粗体 (**text**)
+    const char *bold_start = strstr(line, "**");
+    if (bold_start) {
+        *start = bold_start - line;
+        const char *bold_end = strstr(bold_start + 2, "**");
+        if (bold_end) {
+            *end = bold_end - line + 2;
+            return 3; // 粗体
+        }
+    }
+    
+    // 检查斜体 (*text*)
+    const char *italic_start = strstr(line, "*");
+    if (italic_start && italic_start[1] != '*') {
+        *start = italic_start - line;
+        const char *italic_end = strstr(italic_start + 1, "*");
+        if (italic_end && italic_end[1] != '*') {
+            *end = italic_end - line + 1;
+            return 4; // 斜体
+        }
+    }
+    
+    // 检查链接 [text](url)
+    const char *link_start = strstr(line, "[");
+    if (link_start) {
+        const char *link_mid = strstr(link_start + 1, "]");
+        if (link_mid && link_mid[1] == '(') {
+            const char *link_end = strstr(link_mid + 2, ")");
+            if (link_end) {
+                *start = link_start - line;
+                *end = link_end - line + 1;
+                return 5; // 链接
+            }
+        }
+    }
+    
+    return 0;
+}
+
+// Markdown语法高亮
+void highlight_markdown_line(const char *line, int line_num, int show_numbers, ColorScheme scheme) {
     if (show_numbers) {
         printf("%s%4d%s | ", COLOR_CYAN, line_num, COLOR_RESET);
     }
     
-    char *line_copy = strdup(line);
-    char *token = strtok(line_copy, " \t\n");
+    int len = strlen(line);
+    int i = 0;
     
-    while (token != NULL) {
-        // 清理token中的标点符号
+    // 检查整行是否为标题
+    if (len > 0 && line[0] == '#') {
+        int j = 0;
+        while (j < len && j < 6 && line[j] == '#') j++;
+        if (j > 0 && (line[j] == ' ' || line[j] == '\0')) {
+            printf("%s%.*s%s", scheme.type, j, line, COLOR_RESET);
+            if (line[j] == ' ') {
+                printf("%s%s%s", scheme.special, line + j, COLOR_RESET);
+            }
+            printf("\n");
+            return;
+        }
+    }
+    
+    // 检查代码块标记
+    if (strncmp(line, "```", 3) == 0) {
+        printf("%s%s%s\n", scheme.special, line, COLOR_RESET);
+        return;
+    }
+    
+    // 逐个字符处理，识别Markdown语法
+    while (i < len) {
+        // 检查粗体 **text**
+        if (i < len - 3 && line[i] == '*' && line[i+1] == '*') {
+            int start = i;
+            i += 2;
+            while (i < len - 1 && !(line[i] == '*' && line[i+1] == '*')) {
+                i++;
+            }
+            if (i < len - 1) {
+                printf("%s**%.*s**%s", scheme.special, i - start - 2, line + start + 2, COLOR_RESET);
+                i += 2;
+                continue;
+            } else {
+                i = start;
+            }
+        }
+        
+        // 检查斜体 *text*
+        if (i < len - 1 && line[i] == '*' && (i == 0 || line[i-1] != '*') && 
+            (i == len - 1 || line[i+1] != '*')) {
+            int start = i;
+            i++;
+            while (i < len && line[i] != '*') i++;
+            if (i < len && (i == len - 1 || line[i+1] != '*')) {
+                printf("%s*%.*s*%s", scheme.special, i - start - 1, line + start + 1, COLOR_RESET);
+                i++;
+                continue;
+            } else {
+                i = start;
+            }
+        }
+        
+        // 检查链接 [text](url)
+        if (line[i] == '[') {
+            int link_start = i;
+            i++;
+            while (i < len && line[i] != ']') i++;
+            if (i < len && i < len - 1 && line[i+1] == '(') {
+                int text_end = i;
+                i += 2;
+                while (i < len && line[i] != ')') i++;
+                if (i < len) {
+                    printf("%s%.*s%s", scheme.special, text_end - link_start + 1, line + link_start, COLOR_RESET);
+                    printf("%s%.*s%s", COLOR_GREEN, i - text_end - 1, line + text_end + 1, COLOR_RESET);
+                    printf("%s", COLOR_RESET);
+                    i++;
+                    continue;
+                }
+            }
+            i = link_start;
+        }
+        
+        // 检查代码内联 `code`
+        if (line[i] == '`') {
+            int start = i;
+            i++;
+            while (i < len && line[i] != '`') i++;
+            if (i < len) {
+                printf("%s`%.*s`%s", scheme.special, i - start - 1, line + start + 1, COLOR_RESET);
+                i++;
+                continue;
+            } else {
+                i = start;
+            }
+        }
+        
+        // 检查注释
+        if (line[i] == '#') {
+            printf("%s%s%s", scheme.comment, line + i, COLOR_RESET);
+            break;
+        }
+        
+        // 普通字符
+        printf("%c", line[i]);
+        i++;
+    }
+    
+    printf("\n");
+}
+
+// 高级语法高亮
+void highlight_line(const char *line, int line_num, int show_numbers, LanguageType lang) {
+    ColorScheme scheme = get_color_scheme(lang);
+    
+    // Markdown使用特殊的处理方式
+    if (lang == LANG_MARKDOWN) {
+        highlight_markdown_line(line, line_num, show_numbers, scheme);
+        return;
+    }
+    
+    if (show_numbers) {
+        printf("%s%4d%s | ", COLOR_CYAN, line_num, COLOR_RESET);
+    }
+    
+    int len = strlen(line);
+    if (len == 0) {
+        printf("\n");
+        return;
+    }
+    
+    // 检查整行是否为注释（Python/Shell/Markdown）
+    if (lang == LANG_PYTHON || lang == LANG_SHELL) {
+        int i = 0;
+        while (i < len && (line[i] == ' ' || line[i] == '\t')) i++;
+        if (i < len && line[i] == '#') {
+            printf("%s%s%s\n", scheme.comment, line, COLOR_RESET);
+            return;
+        }
+    }
+    
+    // 检查整行是否为注释（C/C++/Java/Go）
+    if (lang == LANG_C || lang == LANG_CPP || lang == LANG_JAVA || lang == LANG_GO || lang == LANG_CUDA) {
+        int i = 0;
+        while (i < len && (line[i] == ' ' || line[i] == '\t')) i++;
+        if (i < len - 1 && line[i] == '/' && line[i+1] == '/') {
+            printf("%s%s%s\n", scheme.comment, line, COLOR_RESET);
+            return;
+        }
+    }
+    
+    // 逐字符处理，识别字符串、注释、关键字等
+    int i = 0;
+    int in_string = 0;
+    char string_char = 0;
+    int in_single_comment = 0;
+    int in_multi_comment = 0;
+    
+    char word_buf[256] = {0};
+    int word_pos = 0;
+    
+    while (i < len) {
+        // 检查多行注释开始 (/*)
+        if (!in_string && !in_single_comment && !in_multi_comment &&
+            i < len - 1 && line[i] == '/' && line[i+1] == '*') {
+            if (word_pos > 0) {
+                word_buf[word_pos] = '\0';
+                // 处理之前的单词
+                char clean_token[256];
+                int j = 0;
+                for (int k = 0; word_buf[k] && j < 255; k++) {
+                    if (isalnum(word_buf[k]) || word_buf[k] == '_') {
+                        clean_token[j++] = word_buf[k];
+                    }
+                }
+                clean_token[j] = '\0';
+                
+                if (is_keyword(clean_token, lang)) {
+                    printf("%s%s%s", scheme.keyword, word_buf, COLOR_RESET);
+                } else if (is_type_definition(clean_token, lang)) {
+                    printf("%s%s%s", scheme.type, word_buf, COLOR_RESET);
+                } else if (is_number(word_buf)) {
+                    printf("%s%s%s", scheme.number, word_buf, COLOR_RESET);
+                } else {
+                    printf("%s", word_buf);
+                }
+                word_pos = 0;
+            }
+            in_multi_comment = 1;
+            printf("%s/*", scheme.comment);
+            i += 2;
+            continue;
+        }
+        
+        // 检查多行注释结束 (*/)
+        if (in_multi_comment && i < len - 1 && line[i] == '*' && line[i+1] == '/') {
+            printf("*/%s", COLOR_RESET);
+            in_multi_comment = 0;
+            i += 2;
+            continue;
+        }
+        
+        // 处理多行注释内容
+        if (in_multi_comment) {
+            printf("%c", line[i]);
+            i++;
+            continue;
+        }
+        
+        // 检查单行注释 (//)
+        if (!in_string && !in_single_comment && i < len - 1 && 
+            line[i] == '/' && line[i+1] == '/') {
+            if (word_pos > 0) {
+                word_buf[word_pos] = '\0';
+                char clean_token[256];
+                int j = 0;
+                for (int k = 0; word_buf[k] && j < 255; k++) {
+                    if (isalnum(word_buf[k]) || word_buf[k] == '_') {
+                        clean_token[j++] = word_buf[k];
+                    }
+                }
+                clean_token[j] = '\0';
+                
+                if (is_keyword(clean_token, lang)) {
+                    printf("%s%s%s", scheme.keyword, word_buf, COLOR_RESET);
+                } else if (is_type_definition(clean_token, lang)) {
+                    printf("%s%s%s", scheme.type, word_buf, COLOR_RESET);
+                } else if (is_number(word_buf)) {
+                    printf("%s%s%s", scheme.number, word_buf, COLOR_RESET);
+                } else {
+                    printf("%s", word_buf);
+                }
+                word_pos = 0;
+            }
+            printf("%s%s%s", scheme.comment, line + i, COLOR_RESET);
+            break;
+        }
+        
+        // 检查字符串
+        if (!in_single_comment && (line[i] == '"' || line[i] == '\'')) {
+            if (!in_string) {
+                if (word_pos > 0) {
+                    word_buf[word_pos] = '\0';
+                    char clean_token[256];
+                    int j = 0;
+                    for (int k = 0; word_buf[k] && j < 255; k++) {
+                        if (isalnum(word_buf[k]) || word_buf[k] == '_') {
+                            clean_token[j++] = word_buf[k];
+                        }
+                    }
+                    clean_token[j] = '\0';
+                    
+                    if (is_keyword(clean_token, lang)) {
+                        printf("%s%s%s", scheme.keyword, word_buf, COLOR_RESET);
+                    } else if (is_type_definition(clean_token, lang)) {
+                        printf("%s%s%s", scheme.type, word_buf, COLOR_RESET);
+                    } else if (is_number(word_buf)) {
+                        printf("%s%s%s", scheme.number, word_buf, COLOR_RESET);
+                    } else {
+                        printf("%s", word_buf);
+                    }
+                    word_pos = 0;
+                }
+                in_string = 1;
+                string_char = line[i];
+                printf("%s%c", scheme.string, line[i]);
+            } else if (line[i] == string_char && (i == 0 || line[i-1] != '\\')) {
+                printf("%c%s", line[i], COLOR_RESET);
+                in_string = 0;
+            } else {
+                printf("%c", line[i]);
+            }
+            i++;
+            continue;
+        }
+        
+        // 处理字符串内容
+        if (in_string) {
+            printf("%c", line[i]);
+            i++;
+            continue;
+        }
+        
+        // 检查预处理器指令
+        if (i == 0 && line[i] == '#') {
+            printf("%s%s%s", scheme.preprocessor, line, COLOR_RESET);
+            break;
+        }
+        
+        // 检查操作符
+        if (strchr("+-*/%=<>!&|^~()[]{}.,;?:", line[i])) {
+            if (word_pos > 0) {
+                word_buf[word_pos] = '\0';
+                char clean_token[256];
+                int j = 0;
+                for (int k = 0; word_buf[k] && j < 255; k++) {
+                    if (isalnum(word_buf[k]) || word_buf[k] == '_') {
+                        clean_token[j++] = word_buf[k];
+                    }
+                }
+                clean_token[j] = '\0';
+                
+                if (is_keyword(clean_token, lang)) {
+                    printf("%s%s%s", scheme.keyword, word_buf, COLOR_RESET);
+                } else if (is_type_definition(clean_token, lang)) {
+                    printf("%s%s%s", scheme.type, word_buf, COLOR_RESET);
+                } else if (is_number(word_buf)) {
+                    printf("%s%s%s", scheme.number, word_buf, COLOR_RESET);
+                } else if (is_function_call(word_buf)) {
+                    printf("%s%s%s", scheme.function, word_buf, COLOR_RESET);
+                } else {
+                    printf("%s", word_buf);
+                }
+                word_pos = 0;
+            }
+            
+            // 检查是否为操作符
+            char op_buf[4] = {0};
+            if (i < len - 1) {
+                op_buf[0] = line[i];
+                op_buf[1] = line[i+1];
+                op_buf[2] = '\0';
+                if (is_operator(op_buf)) {
+                    printf("%s%s%s", scheme.operator, op_buf, COLOR_RESET);
+                    i += 2;
+                    continue;
+                }
+            }
+            op_buf[0] = line[i];
+            op_buf[1] = '\0';
+            if (is_operator(op_buf)) {
+                printf("%s%s%s", scheme.operator, op_buf, COLOR_RESET);
+            } else {
+                printf("%c", line[i]);
+            }
+            i++;
+            continue;
+        }
+        
+        // 收集单词字符
+        if (isalnum(line[i]) || line[i] == '_') {
+            if (word_pos < 255) {
+                word_buf[word_pos++] = line[i];
+            }
+        } else if (line[i] == ' ' || line[i] == '\t') {
+            if (word_pos > 0) {
+                word_buf[word_pos] = '\0';
+                char clean_token[256];
+                int j = 0;
+                for (int k = 0; word_buf[k] && j < 255; k++) {
+                    if (isalnum(word_buf[k]) || word_buf[k] == '_') {
+                        clean_token[j++] = word_buf[k];
+                    }
+                }
+                clean_token[j] = '\0';
+                
+                if (is_keyword(clean_token, lang)) {
+                    printf("%s%s%s", scheme.keyword, word_buf, COLOR_RESET);
+                } else if (is_type_definition(clean_token, lang)) {
+                    printf("%s%s%s", scheme.type, word_buf, COLOR_RESET);
+                } else if (is_number(word_buf)) {
+                    printf("%s%s%s", scheme.number, word_buf, COLOR_RESET);
+                } else if (is_function_call(word_buf)) {
+                    printf("%s%s%s", scheme.function, word_buf, COLOR_RESET);
+                } else {
+                    printf("%s", word_buf);
+                }
+                word_pos = 0;
+            }
+            printf("%c", line[i]);
+        } else {
+            if (word_pos > 0) {
+                word_buf[word_pos] = '\0';
+                char clean_token[256];
+                int j = 0;
+                for (int k = 0; word_buf[k] && j < 255; k++) {
+                    if (isalnum(word_buf[k]) || word_buf[k] == '_') {
+                        clean_token[j++] = word_buf[k];
+                    }
+                }
+                clean_token[j] = '\0';
+                
+                if (is_keyword(clean_token, lang)) {
+                    printf("%s%s%s", scheme.keyword, word_buf, COLOR_RESET);
+                } else if (is_type_definition(clean_token, lang)) {
+                    printf("%s%s%s", scheme.type, word_buf, COLOR_RESET);
+                } else if (is_number(word_buf)) {
+                    printf("%s%s%s", scheme.number, word_buf, COLOR_RESET);
+                } else if (is_function_call(word_buf)) {
+                    printf("%s%s%s", scheme.function, word_buf, COLOR_RESET);
+                } else {
+                    printf("%s", word_buf);
+                }
+                word_pos = 0;
+            }
+            printf("%c", line[i]);
+        }
+        
+        i++;
+    }
+    
+    // 处理剩余的单词
+    if (word_pos > 0) {
+        word_buf[word_pos] = '\0';
         char clean_token[256];
         int j = 0;
-        for (int i = 0; token[i] && j < 255; i++) {
-            if (isalnum(token[i]) || token[i] == '_') {
-                clean_token[j++] = token[i];
+        for (int k = 0; word_buf[k] && j < 255; k++) {
+            if (isalnum(word_buf[k]) || word_buf[k] == '_') {
+                clean_token[j++] = word_buf[k];
             }
         }
         clean_token[j] = '\0';
         
-        if (is_preprocessor(token)) {
-            printf("%s%s%s ", PREPROCESSOR_COLOR, token, COLOR_RESET);
-        } else if (is_comment(token)) {
-            printf("%s%s%s ", COMMENT_COLOR, token, COLOR_RESET);
-        } else if (is_string(token)) {
-            printf("%s%s%s ", STRING_COLOR, token, COLOR_RESET);
-        } else if (is_number(token)) {
-            printf("%s%s%s ", NUMBER_COLOR, token, COLOR_RESET);
-        } else if (is_operator(token)) {
-            printf("%s%s%s ", OPERATOR_COLOR, token, COLOR_RESET);
+        if (is_keyword(clean_token, lang)) {
+            printf("%s%s%s", scheme.keyword, word_buf, COLOR_RESET);
         } else if (is_type_definition(clean_token, lang)) {
-            printf("%s%s%s ", TYPE_COLOR, token, COLOR_RESET);
-        } else if (is_keyword(clean_token, lang)) {
-            printf("%s%s%s ", KEYWORD_COLOR, token, COLOR_RESET);
-        } else if (is_function_call(token)) {
-            printf("%s%s%s ", FUNCTION_COLOR, token, COLOR_RESET);
+            printf("%s%s%s", scheme.type, word_buf, COLOR_RESET);
+        } else if (is_number(word_buf)) {
+            printf("%s%s%s", scheme.number, word_buf, COLOR_RESET);
+        } else if (is_function_call(word_buf)) {
+            printf("%s%s%s", scheme.function, word_buf, COLOR_RESET);
         } else {
-            printf("%s ", token);
+            printf("%s", word_buf);
         }
-        token = strtok(NULL, " \t\n");
     }
     
-    free(line_copy);
     printf("\n");
 }
 
@@ -314,6 +942,9 @@ const char *get_language_name(LanguageType lang) {
         case LANG_CPP: return "C++";
         case LANG_GO: return "Go";
         case LANG_PYTHON: return "Python";
+        case LANG_JAVA: return "Java";
+        case LANG_SHELL: return "Shell";
+        case LANG_MARKDOWN: return "Markdown";
         case LANG_CUDA: return "CUDA";
         default: return "Unknown";
     }
@@ -377,6 +1008,9 @@ void print_usage(const char *program_name) {
     printf("  C/C++     (.c, .h, .cpp, .cc, .cxx, .hpp, .hxx)\n");
     printf("  Go        (.go)\n");
     printf("  Python    (.py, .pyw)\n");
+    printf("  Java      (.java)\n");
+    printf("  Shell     (.sh, .bash, 或带shebang的脚本)\n");
+    printf("  Markdown  (.md, .markdown)\n");
     printf("  CUDA      (.cu, .cuh)\n\n");
     printf("选项:\n");
     printf("  -n, --number        显示行号\n");
@@ -388,6 +1022,9 @@ void print_usage(const char *program_name) {
     printf("  %s -n main.cpp       # 显示C++文件内容（带行号）\n", program_name);
     printf("  %s -E script.py      # 显示Python文件内容（显示行结束符）\n", program_name);
     printf("  %s *.go              # 显示多个Go文件\n", program_name);
+    printf("  %s Main.java         # 显示Java文件内容\n", program_name);
+    printf("  %s script.sh         # 显示Shell脚本内容\n", program_name);
+    printf("  %s README.md         # 显示Markdown文件内容\n", program_name);
     printf("  %s kernel.cu         # 显示CUDA文件内容\n", program_name);
 }
 
@@ -407,8 +1044,8 @@ int main(int argc, char *argv[]) {
             print_usage(argv[0]);
             return 0;
         } else if (strcmp(argv[i], "-v") == 0 || strcmp(argv[i], "--version") == 0) {
-            printf("pcat - 多语言语法高亮版 cat 命令 v2.0\n");
-            printf("支持语言: C, C++, Go, Python, CUDA\n");
+            printf("pcat - 多语言语法高亮版 cat 命令 v3.0\n");
+            printf("支持语言: C, C++, Go, Python, Java, Shell, Markdown, CUDA\n");
             return 0;
         } else if (argv[i][0] != '-') {
             files[file_count++] = argv[i];

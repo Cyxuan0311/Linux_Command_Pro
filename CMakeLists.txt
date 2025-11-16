@@ -55,9 +55,19 @@ add_subdirectory(pwhatis)
 add_subdirectory(pshuf)
 add_subdirectory(pyes)
 add_subdirectory(ptee)
+add_subdirectory(psplit)
+add_subdirectory(pjoin)
+add_subdirectory(pdiff)
+add_subdirectory(pzip)
+add_subdirectory(pcp)
+add_subdirectory(pmv)
+add_subdirectory(ptar)
+add_subdirectory(pcpu)
+add_subdirectory(pget)
+add_subdirectory(vgit)
 
 # 安装目标
-install(TARGETS pls pcat pfind pgrep ptop pdu pps pdf pkill pfree pwho puptime pw pawk psed pnetstat pmount pvim phead ptail pcut psort puniq pwc ptouch pmkdir prm dsa pdate pecho pcal pwhich pbc pseq pman pwhereis pwhatis pshuf pyes ptee
+install(TARGETS pls pcat pfind pgrep ptop pdu pps pdf pkill pfree pwho puptime pw pawk psed pnetstat pmount pvim phead ptail pcut psort puniq pwc ptouch pmkdir prm dsa pdate pecho pcal pwhich pbc pseq pman pwhereis pwhatis pshuf pyes ptee psplit pjoin pdiff pzip pcp pmv ptar pcpu pget vgit
         RUNTIME DESTINATION bin)
 
 # 测试支持

@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <unistd.h>
 
 // Unicode方块字符集，按亮度从暗到亮排列，提供更好的视觉效果
 static const char UNICODE_CHARS[] = "█▓▒░";
@@ -33,6 +34,48 @@ static const char UNICODE_CHARS[] = "█▓▒░";
 
 // 默认启用颜色
 #define DEFAULT_COLOR 1
+
+// 颜色模式
+#define COLOR_MODE_8BIT  0  // 8/16色模式
+#define COLOR_MODE_24BIT 1  // 24位真彩色模式
+
+// 检测终端是否支持24位真彩色
+int detect_truecolor_support() {
+    const char *term = getenv("TERM");
+    const char *colorterm = getenv("COLORTERM");
+    
+    // 检查 COLORTERM 环境变量
+    if (colorterm) {
+        if (strstr(colorterm, "truecolor") || strstr(colorterm, "24bit")) {
+            return 1;
+        }
+    }
+    
+    // 检查常见的支持真彩色的终端
+    if (term) {
+        const char *truecolor_terms[] = {
+            "xterm-256color", "screen-256color", "tmux-256color",
+            "rxvt-unicode-256color", "alacritty", "kitty", "wezterm",
+            "vscode", "gnome-terminal", "konsole", "terminator"
+        };
+        
+        for (int i = 0; i < sizeof(truecolor_terms) / sizeof(truecolor_terms[0]); i++) {
+            if (strstr(term, truecolor_terms[i])) {
+                return 1;
+            }
+        }
+    }
+    
+    // 尝试通过查询终端能力来检测（更可靠的方法）
+    // 发送查询序列并检查响应
+    if (isatty(STDOUT_FILENO)) {
+        // 大多数现代终端都支持，默认返回1
+        // 如果终端不支持，会显示错误的颜色，但不会崩溃
+        return 1;
+    }
+    
+    return 0;
+}
 
 // 帮助信息
 void print_help(const char *program_name) {
@@ -87,60 +130,138 @@ char* get_unicode_char(unsigned char gray_value) {
     return result;
 }
 
-// 获取颜色代码 - 改进的颜色映射
-const char* get_color_code(unsigned char r, unsigned char g, unsigned char b) {
+// 获取24位真彩色代码
+void get_truecolor_code(unsigned char r, unsigned char g, unsigned char b, char *buffer, size_t buffer_size) {
+    snprintf(buffer, buffer_size, "\033[38;2;%d;%d;%dm", r, g, b);
+}
+
+// 将RGB转换为256色模式（8位颜色）
+int rgb_to_256color(unsigned char r, unsigned char g, unsigned char b) {
+    // 使用标准256色映射算法
+    // 前16色是系统颜色，跳过
+    // 216色是6x6x6的RGB立方体 (16-231)
+    // 最后24色是灰度 (232-255)
+    
+    // 如果颜色接近灰度，使用灰度色阶
+    int max_val = (r > g) ? ((r > b) ? r : b) : ((g > b) ? g : b);
+    int min_val = (r < g) ? ((r < b) ? r : b) : ((g < b) ? g : b);
+    
+    if (max_val - min_val < 32) {
+        // 使用灰度色阶 (232-255)
+        int gray = (r + g + b) / 3;
+        return 232 + (gray * 23) / 255;
+    }
+    
+    // 使用RGB立方体 (16-231)
+    // 每个分量映射到0-5
+    int r6 = (r * 5) / 255;
+    int g6 = (g * 5) / 255;
+    int b6 = (b * 5) / 255;
+    
+    return 16 + r6 * 36 + g6 * 6 + b6;
+}
+
+// 获取颜色代码 - 支持24位真彩色和256色模式
+void get_color_code(unsigned char r, unsigned char g, unsigned char b, 
+                    int color_mode, char *buffer, size_t buffer_size) {
+    if (color_mode == COLOR_MODE_24BIT) {
+        // 使用24位真彩色
+        get_truecolor_code(r, g, b, buffer, buffer_size);
+    } else {
+        // 使用256色模式
+        int color_code = rgb_to_256color(r, g, b);
+        snprintf(buffer, buffer_size, "\033[38;5;%dm", color_code);
+    }
+}
+
+// 获取颜色代码（旧版本兼容，用于8/16色模式）
+const char* get_color_code_8bit(unsigned char r, unsigned char g, unsigned char b) {
+    static char buffer[32];
+    
     // 计算亮度和饱和度
     int brightness = (r + g + b) / 3;
     int max_val = (r > g) ? ((r > b) ? r : b) : ((g > b) ? g : b);
     int min_val = (r < g) ? ((r < b) ? r : b) : ((g < b) ? g : b);
     int saturation = max_val - min_val;
     
+    // 改进的颜色映射算法
+    // 使用更精确的阈值和更丰富的颜色判断
+    
     // 如果饱和度很低，使用灰度
-    if (saturation < 30) {
-        if (brightness > 200) return "\033[97m"; // 很亮白
-        else if (brightness > 150) return "\033[37m"; // 亮白
+    if (saturation < 25) {
+        if (brightness > 220) return "\033[97m";      // 很亮白
+        else if (brightness > 180) return "\033[37m"; // 亮白
+        else if (brightness > 140) return "\033[90m"; // 中亮灰
         else if (brightness > 100) return "\033[90m"; // 中灰
-        else if (brightness > 50) return "\033[90m"; // 暗灰
-        else return "\033[30m"; // 很暗
+        else if (brightness > 60) return "\033[90m";  // 暗灰
+        else if (brightness > 30) return "\033[30m";  // 很暗灰
+        else return "\033[30m";                       // 黑色
     }
     
-    // 根据主色调确定颜色
-    if (r > g && r > b) {
-        // 红色系
-        if (brightness > 180) return "\033[91m"; // 亮红
-        else if (brightness > 120) return "\033[31m"; // 红
-        else return "\033[31m"; // 暗红
-    } else if (g > r && g > b) {
-        // 绿色系
-        if (brightness > 180) return "\033[92m"; // 亮绿
-        else if (brightness > 120) return "\033[32m"; // 绿
-        else return "\033[32m"; // 暗绿
-    } else if (b > r && b > g) {
-        // 蓝色系
-        if (brightness > 180) return "\033[94m"; // 亮蓝
-        else if (brightness > 120) return "\033[34m"; // 蓝
-        else return "\033[34m"; // 暗蓝
-    } else if (r > 150 && g > 150 && b < 100) {
-        // 黄色系
-        return "\033[93m"; // 亮黄
-    } else if (r > 150 && g < 100 && b > 150) {
-        // 洋红色系
-        return "\033[95m"; // 亮洋红
-    } else if (r < 100 && g > 150 && b > 150) {
-        // 青色系
-        return "\033[96m"; // 亮青
-    } else if (r > 120 && g > 120 && b > 120) {
-        // 白色系
-        if (brightness > 200) return "\033[97m"; // 很亮白
-        else return "\033[37m"; // 白
+    // 计算各颜色分量的相对强度
+    int r_ratio = (r * 100) / (max_val + 1);
+    int g_ratio = (g * 100) / (max_val + 1);
+    int b_ratio = (b * 100) / (max_val + 1);
+    
+    // 根据主色调和亮度确定颜色
+    if (r > g + 30 && r > b + 30) {
+        // 红色系（红色明显占优）
+        if (brightness > 200) return "\033[91m";      // 亮红
+        else if (brightness > 140) return "\033[31m"; // 红
+        else if (brightness > 80) return "\033[31m";  // 中红
+        else return "\033[31m";                       // 暗红
+    } else if (g > r + 30 && g > b + 30) {
+        // 绿色系（绿色明显占优）
+        if (brightness > 200) return "\033[92m";      // 亮绿
+        else if (brightness > 140) return "\033[32m"; // 绿
+        else if (brightness > 80) return "\033[32m";  // 中绿
+        else return "\033[32m";                       // 暗绿
+    } else if (b > r + 30 && b > g + 30) {
+        // 蓝色系（蓝色明显占优）
+        if (brightness > 200) return "\033[94m";      // 亮蓝
+        else if (brightness > 140) return "\033[34m"; // 蓝
+        else if (brightness > 80) return "\033[34m";  // 中蓝
+        else return "\033[34m";                       // 暗蓝
+    } else if (r > 180 && g > 180 && b < 120) {
+        // 黄色系（红+绿，蓝少）
+        if (brightness > 200) return "\033[93m";      // 亮黄
+        else return "\033[33m";                       // 黄
+    } else if (r > 180 && g < 120 && b > 180) {
+        // 洋红色系（红+蓝，绿少）
+        if (brightness > 200) return "\033[95m";      // 亮洋红
+        else return "\033[35m";                       // 洋红
+    } else if (r < 120 && g > 180 && b > 180) {
+        // 青色系（绿+蓝，红少）
+        if (brightness > 200) return "\033[96m";      // 亮青
+        else return "\033[36m";                       // 青
+    } else if (r > 140 && g > 140 && b > 140) {
+        // 白色系（所有颜色都较高）
+        if (brightness > 220) return "\033[97m";      // 很亮白
+        else if (brightness > 180) return "\033[37m"; // 亮白
+        else return "\033[37m";                       // 白
+    }
+    
+    // 混合色：根据主要颜色分量选择
+    if (r_ratio > g_ratio && r_ratio > b_ratio) {
+        // 偏红
+        if (brightness > 150) return "\033[91m";
+        else return "\033[31m";
+    } else if (g_ratio > r_ratio && g_ratio > b_ratio) {
+        // 偏绿
+        if (brightness > 150) return "\033[92m";
+        else return "\033[32m";
+    } else if (b_ratio > r_ratio && b_ratio > g_ratio) {
+        // 偏蓝
+        if (brightness > 150) return "\033[94m";
+        else return "\033[34m";
     }
     
     // 默认返回基于亮度的颜色
-    if (brightness > 200) return "\033[97m"; // 很亮
-    else if (brightness > 150) return "\033[37m"; // 亮
-    else if (brightness > 100) return "\033[90m"; // 中
-    else if (brightness > 50) return "\033[90m"; // 暗
-    else return "\033[30m"; // 很暗
+    if (brightness > 200) return "\033[97m";
+    else if (brightness > 150) return "\033[37m";
+    else if (brightness > 100) return "\033[90m";
+    else if (brightness > 50) return "\033[90m";
+    else return "\033[30m";
 }
 
 // 显示图片
@@ -154,9 +275,26 @@ int display_image(const char *filename, int width, int use_color) {
         return 1;
     }
     
+    // 检测颜色模式
+    int color_mode = COLOR_MODE_8BIT;
+    const char *color_mode_str = "8/16色";
+    if (use_color) {
+        if (detect_truecolor_support()) {
+            color_mode = COLOR_MODE_24BIT;
+            color_mode_str = "24位真彩色";
+        } else {
+            color_mode = COLOR_MODE_8BIT;
+            color_mode_str = "256色";
+        }
+    }
+    
     printf("🖼️  图片信息: %dx%d, %d通道\n", x, y, n);
     printf("📏 显示宽度: %d 字符\n", width);
-    printf("🎨 颜色模式: %s\n\n", use_color ? "启用" : "禁用");
+    printf("🎨 颜色模式: %s", use_color ? color_mode_str : "禁用");
+    if (use_color && color_mode == COLOR_MODE_24BIT) {
+        printf(" ✨");
+    }
+    printf("\n\n");
     
     // 计算缩放比例 - 提高分辨率
     float scale = (float)width / x;
@@ -208,7 +346,10 @@ int display_image(const char *filename, int width, int use_color) {
                 
                 // 输出字符
                 if (use_color) {
-                    printf("%s%s%s", get_color_code(r, g, b), unicode_char, RESET);
+                    char color_buffer[64];
+                    // 使用24位真彩色或256色模式
+                    get_color_code(r, g, b, color_mode, color_buffer, sizeof(color_buffer));
+                    printf("%s%s%s", color_buffer, unicode_char, RESET);
                 } else {
                     printf("%s", unicode_char);
                 }

@@ -52,6 +52,11 @@
 #define ICON_DOCUMENT      "📝"
 #define ICON_CODE          "💻"
 
+// C/C++ 兼容
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // 工具函数
 void print_error(const char *message);
 void print_success(const char *message);
@@ -71,5 +76,9 @@ int is_code_file(const char *filename);
 char* format_size(off_t size);
 char* format_time(time_t time);
 char* get_file_icon(const char *filename, mode_t mode);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // COMMON_H

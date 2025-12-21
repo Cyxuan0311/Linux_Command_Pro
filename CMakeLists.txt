@@ -66,9 +66,10 @@ add_subdirectory(pcpu)
 add_subdirectory(pget)
 
 add_subdirectory(phistory)
+add_subdirectory(grapher)
 
 # 安装目标
-install(TARGETS pls pcat pfind pgrep ptop pdu pps pdf pkill pfree pwho puptime pw pawk psed pnetstat pmount pvim phead ptail pcut psort puniq pwc ptouch pmkdir prm dsa pdate pecho pcal pwhich pbc pseq pman pwhereis pwhatis pshuf pyes ptee psplit pjoin pdiff pzip pcp pmv ptar pcpu pget phistory
+install(TARGETS pls pcat pfind pgrep ptop pdu pps pdf pkill pfree pwho puptime pw pawk psed pnetstat pmount pvim phead ptail pcut psort puniq pwc ptouch pmkdir prm dsa pdate pecho pcal pwhich pbc pseq pman pwhereis pwhatis pshuf pyes ptee psplit pjoin pdiff pzip pcp pmv ptar pcpu pget phistory grapher
         RUNTIME DESTINATION bin)
 
 # 测试支持

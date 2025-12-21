@@ -1,6 +1,8 @@
-# 🐧 Linux Command Pro
-
 <div align="center">
+
+<img src="image/image.png" alt="Linux Command Pro Logo" width="200" height="200">
+
+# 🐧 Linux Command Pro
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](https://github.com/yourusername/The_Linux_Command_Pro)

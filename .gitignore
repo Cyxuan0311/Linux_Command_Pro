@@ -2,6 +2,7 @@ todo.txt
 # 构建目录
 build/
 test_build/
+third_party/
 
 # 测试临时文件
 tmp/

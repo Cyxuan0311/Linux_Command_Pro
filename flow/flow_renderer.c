@@ -196,8 +196,8 @@ void render_line(const char *line, MarkdownType type, int level, StyleType style
                     render_html_content(heading_text, cleaned_text, sizeof(cleaned_text), style);
                     parse_inline_formatting(cleaned_text, formatted_text, sizeof(formatted_text), style);
                 } else {
-                    strip_html_tags(heading_text, cleaned_text, sizeof(cleaned_text));
-                    parse_inline_formatting(cleaned_text, formatted_text, sizeof(formatted_text), style);
+                strip_html_tags(heading_text, cleaned_text, sizeof(cleaned_text));
+                parse_inline_formatting(cleaned_text, formatted_text, sizeof(formatted_text), style);
                 }
                 
                 // 反白颜色（背景色和前景色互换）
@@ -208,44 +208,44 @@ void render_line(const char *line, MarkdownType type, int level, StyleType style
                 
                 // 只有在有居中属性时才居中显示
                 if (should_center) {
-                    int width = get_terminal_width();
-                    if (show_line_num) width -= 7;
-                    
-                    // 计算文本实际显示宽度（去除 ANSI 代码）
-                    int text_width = 0;
-                    const char *p = formatted_text;
-                    bool in_ansi = false;
-                    while (*p) {
-                        if (*p == '\033' && p[1] == '[') {
-                            in_ansi = true;
-                            p += 2;
-                            while (*p && *p != 'm') p++;
-                            if (*p == 'm') p++;
-                            in_ansi = false;
-                            continue;
-                        }
-                        if (!in_ansi) {
-                            // 简单判断中文字符（UTF-8）
-                            if ((unsigned char)*p >= 0x80) {
-                                text_width += 2;  // 中文字符占2个宽度
-                                // 跳过 UTF-8 多字节字符的后续字节
-                                if ((unsigned char)*p >= 0xE0) p += 2;
-                                else if ((unsigned char)*p >= 0xC0) p += 1;
-                            } else {
-                                text_width += 1;  // 英文字符占1个宽度
-                            }
-                        }
-                        p++;
+                int width = get_terminal_width();
+                if (show_line_num) width -= 7;
+                
+                // 计算文本实际显示宽度（去除 ANSI 代码）
+                int text_width = 0;
+                const char *p = formatted_text;
+                bool in_ansi = false;
+                while (*p) {
+                    if (*p == '\033' && p[1] == '[') {
+                        in_ansi = true;
+                        p += 2;
+                        while (*p && *p != 'm') p++;
+                        if (*p == 'm') p++;
+                        in_ansi = false;
+                        continue;
                     }
-                    
-                    // 计算左侧填充空格数量以居中
-                    int padding = (width - text_width) / 2;
-                    if (padding < 0) padding = 0;
-                    
-                    // 左侧填充
-                    for (int i = 0; i < padding; i++) {
-                        printf(" ");
+                    if (!in_ansi) {
+                        // 简单判断中文字符（UTF-8）
+                        if ((unsigned char)*p >= 0x80) {
+                            text_width += 2;  // 中文字符占2个宽度
+                            // 跳过 UTF-8 多字节字符的后续字节
+                            if ((unsigned char)*p >= 0xE0) p += 2;
+                            else if ((unsigned char)*p >= 0xC0) p += 1;
+                        } else {
+                            text_width += 1;  // 英文字符占1个宽度
+                        }
                     }
+                    p++;
+                }
+                
+                // 计算左侧填充空格数量以居中
+                int padding = (width - text_width) / 2;
+                if (padding < 0) padding = 0;
+                
+                // 左侧填充
+                for (int i = 0; i < padding; i++) {
+                    printf(" ");
+                }
                 }
                 
                 // 反白文本（只反白文本部分）
@@ -274,8 +274,8 @@ void render_line(const char *line, MarkdownType type, int level, StyleType style
                     render_html_content(p, cleaned_text, sizeof(cleaned_text), style);
                     parse_inline_formatting(cleaned_text, formatted_text, sizeof(formatted_text), style);
                 } else {
-                    strip_html_tags(p, cleaned_text, sizeof(cleaned_text));
-                    parse_inline_formatting(cleaned_text, formatted_text, sizeof(formatted_text), style);
+                strip_html_tags(p, cleaned_text, sizeof(cleaned_text));
+                parse_inline_formatting(cleaned_text, formatted_text, sizeof(formatted_text), style);
                 }
                 
                 // 根据标题级别添加不同的间距（参考 glow）
@@ -302,8 +302,8 @@ void render_line(const char *line, MarkdownType type, int level, StyleType style
                 render_html_content(quote_text, cleaned_text, sizeof(cleaned_text), style);
                 parse_inline_formatting(cleaned_text, formatted_text, sizeof(formatted_text), style);
             } else {
-                strip_html_tags(quote_text, cleaned_text, sizeof(cleaned_text));
-                parse_inline_formatting(cleaned_text, formatted_text, sizeof(formatted_text), style);
+            strip_html_tags(quote_text, cleaned_text, sizeof(cleaned_text));
+            parse_inline_formatting(cleaned_text, formatted_text, sizeof(formatted_text), style);
             }
             // 引用块前添加垂直线和缩进（类似 glow，优化样式）
             const char *quote_border = (style == STYLE_LIGHT) ? 
@@ -325,8 +325,8 @@ void render_line(const char *line, MarkdownType type, int level, StyleType style
                 render_html_content(list_text, cleaned_text, sizeof(cleaned_text), style);
                 parse_inline_formatting(cleaned_text, formatted_text, sizeof(formatted_text), style);
             } else {
-                strip_html_tags(list_text, cleaned_text, sizeof(cleaned_text));
-                parse_inline_formatting(cleaned_text, formatted_text, sizeof(formatted_text), style);
+            strip_html_tags(list_text, cleaned_text, sizeof(cleaned_text));
+            parse_inline_formatting(cleaned_text, formatted_text, sizeof(formatted_text), style);
             }
             // 根据层级缩进（每级2个空格），优化符号显示
             for (int i = 0; i < level; i++) {
@@ -347,8 +347,8 @@ void render_line(const char *line, MarkdownType type, int level, StyleType style
                 render_html_content(list_text, cleaned_text, sizeof(cleaned_text), style);
                 parse_inline_formatting(cleaned_text, formatted_text, sizeof(formatted_text), style);
             } else {
-                strip_html_tags(list_text, cleaned_text, sizeof(cleaned_text));
-                parse_inline_formatting(cleaned_text, formatted_text, sizeof(formatted_text), style);
+            strip_html_tags(list_text, cleaned_text, sizeof(cleaned_text));
+            parse_inline_formatting(cleaned_text, formatted_text, sizeof(formatted_text), style);
             }
             // 提取序号
             int num = 0;
@@ -435,8 +435,8 @@ void render_line(const char *line, MarkdownType type, int level, StyleType style
                     render_html_content(line, cleaned_text, sizeof(cleaned_text), style);
                     parse_inline_formatting(cleaned_text, formatted_text, sizeof(formatted_text), style);
                 } else {
-                    strip_html_tags(line, cleaned_text, sizeof(cleaned_text));
-                    parse_inline_formatting(cleaned_text, formatted_text, sizeof(formatted_text), style);
+                strip_html_tags(line, cleaned_text, sizeof(cleaned_text));
+                parse_inline_formatting(cleaned_text, formatted_text, sizeof(formatted_text), style);
                 }
                 // 普通文本使用默认颜色，确保可读性
                 const char *normal_color = (style == STYLE_LIGHT) ? 

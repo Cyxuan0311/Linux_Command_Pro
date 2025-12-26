@@ -16,8 +16,37 @@
 #include <math.h>
 #include <unistd.h>
 
-// Unicode方块字符集，按亮度从暗到亮排列，提供更好的视觉效果
+// 字符集模式枚举
+typedef enum {
+    CHARSET_UNICODE_BLOCKS,      // Unicode块状字符（默认，原有模式）
+    CHARSET_UNICODE_BLOCKS_FULL, // Unicode完整块状字符集
+    CHARSET_ASCII_SIMPLE,        // ASCII简单字符
+    CHARSET_ASCII_DETAILED,      // ASCII详细字符
+    CHARSET_ASCII_NUMBERS,       // ASCII数字
+    CHARSET_ASCII_LETTERS,       // ASCII字母
+    CHARSET_ASCII_MIXED          // ASCII混合字符
+} charset_mode_t;
+
+// Unicode方块字符集，按亮度从暗到亮排列，提供更好的视觉效果（原有模式）
 static const char UNICODE_CHARS[] = "█▓▒░";
+
+// Unicode完整块状字符集（更多层次）
+static const char UNICODE_CHARS_FULL[] = "█▓▒░▄▀";
+
+// ASCII简单字符集（从暗到亮）
+static const char ASCII_SIMPLE[] = " .:-=+*#%@$";
+
+// ASCII详细字符集（从暗到亮）
+static const char ASCII_DETAILED[] = " .'`^\",:;Il!i><~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$";
+
+// ASCII数字字符集（从暗到亮）
+static const char ASCII_NUMBERS[] = "0123456789";
+
+// ASCII字母字符集（从暗到亮）
+static const char ASCII_LETTERS[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+// ASCII混合字符集（从暗到亮）
+static const char ASCII_MIXED[] = " .:;+=xX$&";
 
 // 颜色代码
 #define RESET   "\033[0m"
@@ -59,7 +88,8 @@ int detect_truecolor_support() {
             "vscode", "gnome-terminal", "konsole", "terminator"
         };
         
-        for (int i = 0; i < sizeof(truecolor_terms) / sizeof(truecolor_terms[0]); i++) {
+        size_t num_terms = sizeof(truecolor_terms) / sizeof(truecolor_terms[0]);
+        for (size_t i = 0; i < num_terms; i++) {
             if (strstr(term, truecolor_terms[i])) {
                 return 1;
             }
@@ -90,13 +120,25 @@ void print_help(const char *program_name) {
     printf("  -v, --version  显示版本信息\n");
     printf("  -c, --color    启用颜色显示 (默认)\n");
     printf("  -n, --no-color 禁用颜色显示\n");
-    printf("  -w, --width    指定宽度\n\n");
+    printf("  -w, --width    指定宽度\n");
+    printf("  -m, --mode     指定字符集模式 (默认: unicode)\n\n");
+    printf("字符集模式:\n");
+    printf("  unicode         Unicode块状字符 (默认，原有模式) █▓▒░\n");
+    printf("  unicode-full    Unicode完整块状字符集 █▓▒░▄▀\n");
+    printf("  ascii-simple    ASCII简单字符  .:-=+*#%%@$\n");
+    printf("  ascii-detailed  ASCII详细字符 (更多层次)\n");
+    printf("  ascii-numbers   ASCII数字 0123456789\n");
+    printf("  ascii-letters   ASCII字母 a-z A-Z\n");
+    printf("  ascii-mixed     ASCII混合字符  .:;+=xX$&\n\n");
     printf("示例:\n");
     printf("  %s image.jpg\n", program_name);
     printf("  %s image.png 120\n", program_name);
     printf("  %s -c image.jpg\n", program_name);
     printf("  %s -n image.jpg\n", program_name);
     printf("  %s --width 100 image.png\n", program_name);
+    printf("  %s --mode ascii-simple image.jpg\n", program_name);
+    printf("  %s --mode ascii-numbers image.png\n", program_name);
+    printf("  %s --mode unicode-full image.jpg\n", program_name);
 }
 
 // 版本信息
@@ -111,23 +153,105 @@ unsigned char rgb_to_gray(unsigned char r, unsigned char g, unsigned char b) {
     return (unsigned char)(0.299 * r + 0.587 * g + 0.114 * b);
 }
 
-// 获取Unicode字符
-char* get_unicode_char(unsigned char gray_value) {
+// 获取字符（根据字符集模式和灰度值）
+char* get_char_for_gray(unsigned char gray_value, charset_mode_t charset_mode) {
     static char result[8]; // 支持多字节Unicode字符
-    int index = (gray_value * 3) / 255; // 4个字符，索引0-3
+    const char *charset = NULL;
+    int charset_len = 0;
+    
+    // 根据字符集模式选择字符集
+    switch(charset_mode) {
+        case CHARSET_UNICODE_BLOCKS:
+            charset = UNICODE_CHARS;
+            charset_len = 4; // "█▓▒░"
+            break;
+        case CHARSET_UNICODE_BLOCKS_FULL:
+            charset = UNICODE_CHARS_FULL;
+            charset_len = 6; // "█▓▒░▄▀"
+            break;
+        case CHARSET_ASCII_SIMPLE:
+            charset = ASCII_SIMPLE;
+            charset_len = strlen(ASCII_SIMPLE);
+            break;
+        case CHARSET_ASCII_DETAILED:
+            charset = ASCII_DETAILED;
+            charset_len = strlen(ASCII_DETAILED);
+            break;
+        case CHARSET_ASCII_NUMBERS:
+            charset = ASCII_NUMBERS;
+            charset_len = strlen(ASCII_NUMBERS);
+            break;
+        case CHARSET_ASCII_LETTERS:
+            charset = ASCII_LETTERS;
+            charset_len = strlen(ASCII_LETTERS);
+            break;
+        case CHARSET_ASCII_MIXED:
+            charset = ASCII_MIXED;
+            charset_len = strlen(ASCII_MIXED);
+            break;
+        default:
+            charset = UNICODE_CHARS;
+            charset_len = 4;
+            break;
+    }
+    
+    if (charset_len <= 0) {
+        strcpy(result, " ");
+        return result;
+    }
+    
+    // 计算字符索引（灰度值越大，字符越暗）
+    // 对于ASCII字符集，需要反转映射（ASCII字符集中，前面的字符较暗）
+    int index;
+    if (charset_mode == CHARSET_UNICODE_BLOCKS || charset_mode == CHARSET_UNICODE_BLOCKS_FULL) {
+        // Unicode块状字符：灰度值越大，使用越暗的字符（索引越大）
+        index = (gray_value * (charset_len - 1)) / 255;
+    } else {
+        // ASCII字符：灰度值越大，使用越亮的字符（索引越大）
+        // 但ASCII字符集中前面的字符较暗，所以需要反转
+        index = ((255 - gray_value) * (charset_len - 1)) / 255;
+    }
     
     // 确保索引在有效范围内
-    if (index > 3) index = 3;
+    if (index < 0) index = 0;
+    if (index >= charset_len) index = charset_len - 1;
     
-    // 根据索引返回对应的Unicode字符
-    switch(index) {
-        case 0: strcpy(result, "░"); break; // 最亮
-        case 1: strcpy(result, "▒"); break;
-        case 2: strcpy(result, "▓"); break;
-        case 3: strcpy(result, "█"); break; // 最暗
-        default: strcpy(result, "░"); break;
+    // 复制字符到结果
+    if (charset_mode == CHARSET_UNICODE_BLOCKS || charset_mode == CHARSET_UNICODE_BLOCKS_FULL) {
+        // Unicode字符可能是多字节的，使用预定义的字符数组
+        const char* unicode_chars_array[] = {
+            "░", "▒", "▓", "█"  // CHARSET_UNICODE_BLOCKS
+        };
+        const char* unicode_chars_full_array[] = {
+            "░", "▒", "▓", "█", "▄", "▀"  // CHARSET_UNICODE_BLOCKS_FULL
+        };
+        
+        const char* selected_char;
+        if (charset_mode == CHARSET_UNICODE_BLOCKS) {
+            selected_char = unicode_chars_array[index];
+        } else {
+            selected_char = unicode_chars_full_array[index];
+        }
+        
+        // 复制Unicode字符（最多4字节）
+        int i = 0;
+        while (selected_char[i] != '\0' && i < 7) {
+            result[i] = selected_char[i];
+            i++;
+        }
+        result[i] = '\0';
+    } else {
+        // ASCII字符，单字节
+        result[0] = charset[index];
+        result[1] = '\0';
     }
+    
     return result;
+}
+
+// 获取Unicode字符（保留原有函数以兼容）
+char* get_unicode_char(unsigned char gray_value) {
+    return get_char_for_gray(gray_value, CHARSET_UNICODE_BLOCKS);
 }
 
 // 获取24位真彩色代码
@@ -176,8 +300,6 @@ void get_color_code(unsigned char r, unsigned char g, unsigned char b,
 
 // 获取颜色代码（旧版本兼容，用于8/16色模式）
 const char* get_color_code_8bit(unsigned char r, unsigned char g, unsigned char b) {
-    static char buffer[32];
-    
     // 计算亮度和饱和度
     int brightness = (r + g + b) / 3;
     int max_val = (r > g) ? ((r > b) ? r : b) : ((g > b) ? g : b);
@@ -264,8 +386,43 @@ const char* get_color_code_8bit(unsigned char r, unsigned char g, unsigned char 
     else return "\033[30m";
 }
 
+// 解析字符集模式
+charset_mode_t parse_charset_mode(const char *mode_str) {
+    if (strcmp(mode_str, "unicode") == 0) {
+        return CHARSET_UNICODE_BLOCKS;
+    } else if (strcmp(mode_str, "unicode-full") == 0) {
+        return CHARSET_UNICODE_BLOCKS_FULL;
+    } else if (strcmp(mode_str, "ascii-simple") == 0) {
+        return CHARSET_ASCII_SIMPLE;
+    } else if (strcmp(mode_str, "ascii-detailed") == 0) {
+        return CHARSET_ASCII_DETAILED;
+    } else if (strcmp(mode_str, "ascii-numbers") == 0) {
+        return CHARSET_ASCII_NUMBERS;
+    } else if (strcmp(mode_str, "ascii-letters") == 0) {
+        return CHARSET_ASCII_LETTERS;
+    } else if (strcmp(mode_str, "ascii-mixed") == 0) {
+        return CHARSET_ASCII_MIXED;
+    } else {
+        return CHARSET_UNICODE_BLOCKS; // 默认模式
+    }
+}
+
+// 获取字符集模式名称
+const char* get_charset_mode_name(charset_mode_t mode) {
+    switch(mode) {
+        case CHARSET_UNICODE_BLOCKS: return "Unicode块状字符";
+        case CHARSET_UNICODE_BLOCKS_FULL: return "Unicode完整块状字符";
+        case CHARSET_ASCII_SIMPLE: return "ASCII简单字符";
+        case CHARSET_ASCII_DETAILED: return "ASCII详细字符";
+        case CHARSET_ASCII_NUMBERS: return "ASCII数字";
+        case CHARSET_ASCII_LETTERS: return "ASCII字母";
+        case CHARSET_ASCII_MIXED: return "ASCII混合字符";
+        default: return "Unicode块状字符";
+    }
+}
+
 // 显示图片
-int display_image(const char *filename, int width, int use_color) {
+int display_image(const char *filename, int width, int use_color, charset_mode_t charset_mode) {
     int x, y, n;
     unsigned char *data = stbi_load(filename, &x, &y, &n, 0);
     
@@ -294,7 +451,8 @@ int display_image(const char *filename, int width, int use_color) {
     if (use_color && color_mode == COLOR_MODE_24BIT) {
         printf(" ✨");
     }
-    printf("\n\n");
+    printf("\n");
+    printf("🔤 字符集模式: %s\n\n", get_charset_mode_name(charset_mode));
     
     // 计算缩放比例 - 提高分辨率
     float scale = (float)width / x;
@@ -341,17 +499,17 @@ int display_image(const char *filename, int width, int use_color) {
                 // 转换为灰度
                 unsigned char gray = rgb_to_gray(r, g, b);
                 
-                // 获取Unicode字符
-                char* unicode_char = get_unicode_char(gray);
+                // 根据字符集模式获取字符
+                char* display_char = get_char_for_gray(gray, charset_mode);
                 
                 // 输出字符
                 if (use_color) {
                     char color_buffer[64];
                     // 使用24位真彩色或256色模式
                     get_color_code(r, g, b, color_mode, color_buffer, sizeof(color_buffer));
-                    printf("%s%s%s", color_buffer, unicode_char, RESET);
+                    printf("%s%s%s", color_buffer, display_char, RESET);
                 } else {
-                    printf("%s", unicode_char);
+                    printf("%s", display_char);
                 }
             } else {
                 printf(" ");
@@ -370,6 +528,7 @@ int display_image(const char *filename, int width, int use_color) {
 int main(int argc, char *argv[]) {
     int width = DEFAULT_WIDTH;
     int use_color = DEFAULT_COLOR; // 默认启用颜色
+    charset_mode_t charset_mode = CHARSET_UNICODE_BLOCKS; // 默认使用Unicode块状字符（原有模式）
     char *filename = NULL;
     
     // 解析命令行参数
@@ -393,6 +552,14 @@ int main(int argc, char *argv[]) {
                 }
             } else {
                 fprintf(stderr, "❌ 错误: --width 需要指定数值\n");
+                return 1;
+            }
+        } else if (strcmp(argv[i], "-m") == 0 || strcmp(argv[i], "--mode") == 0) {
+            if (i + 1 < argc) {
+                charset_mode = parse_charset_mode(argv[++i]);
+            } else {
+                fprintf(stderr, "❌ 错误: --mode 需要指定字符集模式\n");
+                fprintf(stderr, "使用 '%s --help' 查看可用的字符集模式\n", argv[0]);
                 return 1;
             }
         } else if (argv[i][0] != '-') {
@@ -429,5 +596,5 @@ int main(int argc, char *argv[]) {
     fclose(file);
     
     // 显示图片
-    return display_image(filename, width, use_color);
+    return display_image(filename, width, use_color, charset_mode);
 }

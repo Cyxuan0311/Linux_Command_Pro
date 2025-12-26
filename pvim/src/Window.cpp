@@ -178,10 +178,10 @@ void Window::drawBorder() {
 
 void Window::drawTitle() {
     if (win_ && visible_ && !title_.empty()) {
-        int title_x = (width_ - title_.length()) / 2;
+        int title_x = (width_ - static_cast<int>(title_.length())) / 2;
         if (title_x < 0) title_x = 0;
-        if (title_x + title_.length() >= width_) {
-            title_x = width_ - title_.length() - 1;
+        if (title_x + static_cast<int>(title_.length()) >= width_) {
+            title_x = width_ - static_cast<int>(title_.length()) - 1;
         }
         
         wattron(win_, COLOR_PAIR(border_style_.color_pair));
@@ -454,6 +454,9 @@ bool WindowManager::handleKeyPress(int key) {
 }
 
 void WindowManager::handleMouseClick(int y, int x, int button) {
+    (void)y;
+    (void)x;
+    (void)button;
     // 简化实现
 }
 

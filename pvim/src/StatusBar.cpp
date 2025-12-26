@@ -73,7 +73,7 @@ void StatusBar::draw() {
     }
     
     // 截断过长的状态栏
-    if (status.length() > screen_cols) {
+    if (status.length() > static_cast<size_t>(screen_cols)) {
         status = status.substr(0, screen_cols - 3) + "...";
     }
     
@@ -90,6 +90,7 @@ void StatusBar::resize(int width, int height) {
 }
 
 void StatusBar::setMessage(const std::string& message) {
+    (void)message;
     // 消息通过编辑器设置
 }
 

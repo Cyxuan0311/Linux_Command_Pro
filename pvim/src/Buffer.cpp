@@ -205,7 +205,7 @@ void Buffer::deleteText(const TextPosition& start, const TextPosition& end) {
             start_line->append(end_content);
             
             // 删除中间行
-            for (size_t i = start.line + 1; i <= end.line; i++) {
+            for (int i = start.line + 1; i <= end.line; i++) {
                 deleteLine(start.line + 1);
             }
             
@@ -272,7 +272,7 @@ TextPosition Buffer::find(const std::string& text, const TextPosition& start, bo
             std::transform(line_content.begin(), line_content.end(), line_content.begin(), ::tolower);
         }
         
-        size_t pos = line_content.find(search_text, line == start.line ? start.column : 0);
+        size_t pos = line_content.find(search_text, line == static_cast<size_t>(start.line) ? static_cast<size_t>(start.column) : 0);
         if (pos != std::string::npos) {
             return TextPosition(line, pos);
         }
@@ -328,7 +328,7 @@ void Buffer::pushUndo() {
     std::string state = getContent();
     undo_stack_.push_back(state);
     
-    if (undo_stack_.size() > max_undo_levels_) {
+    if (undo_stack_.size() > static_cast<size_t>(max_undo_levels_)) {
         undo_stack_.erase(undo_stack_.begin());
     }
     
@@ -426,10 +426,10 @@ std::string Buffer::getRangeContent(const TextPosition& start, const TextPositio
     } else {
         // 跨行内容
         stream << lines_[start.line]->substr(start.column);
-        for (size_t line = start.line + 1; line < end.line; line++) {
+        for (int line = start.line + 1; line < end.line; line++) {
             stream << line_ending_ << lines_[line]->getContent();
         }
-        if (end.line < lines_.size()) {
+        if (end.line < static_cast<int>(lines_.size())) {
             stream << line_ending_ << lines_[end.line]->substr(0, end.column);
         }
     }
@@ -485,7 +485,7 @@ void Buffer::updateModified() {
 
 void Buffer::addToUndoStack(const std::string& state) {
     undo_stack_.push_back(state);
-    if (undo_stack_.size() > max_undo_levels_) {
+    if (undo_stack_.size() > static_cast<size_t>(max_undo_levels_)) {
         undo_stack_.erase(undo_stack_.begin());
     }
 }

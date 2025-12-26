@@ -90,7 +90,7 @@ void Editor::run() {
         updateScreenSize();
         refreshDisplay();
         
-        int key = getch();
+        (void)getch();
         processInput();
     }
 }
@@ -267,14 +267,11 @@ void Editor::refreshDisplay() {
     window_->clear();
     
     // 绘制文本内容
-    int start_line = 0;
-    int start_col = 0;
-    
-    for (int i = 0; i < screen_rows_ - 1 && i < buffer_->getLineCount(); i++) {
+    for (int i = 0; i < screen_rows_ - 1 && i < static_cast<int>(buffer_->getLineCount()); i++) {
         std::string line = buffer_->getLineContent(i);
         
         // 截断过长的行
-        if (line.length() > screen_cols_) {
+        if (line.length() > static_cast<size_t>(screen_cols_)) {
             line = line.substr(0, screen_cols_);
         }
         

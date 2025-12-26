@@ -8,7 +8,7 @@ UndoManager::UndoManager(Editor* editor) : editor_(editor) {
 
 void UndoManager::pushState(const std::string& state) {
     undo_stack_.push_back(state);
-    if (undo_stack_.size() > max_levels_) {
+    if (undo_stack_.size() > static_cast<size_t>(max_levels_)) {
         undo_stack_.erase(undo_stack_.begin());
     }
     redo_stack_.clear();
@@ -65,6 +65,7 @@ std::string UndoManager::getCurrentState() const {
 }
 
 void UndoManager::restoreState(const std::string& state) {
+    (void)state;
     if (editor_ && editor_->getBuffer()) {
         // 简化实现
         editor_->getBuffer()->loadFromFile("temp");

@@ -29,7 +29,6 @@ set(PVIM_SOURCES
 
 # 创建可执行文件
 add_executable(pvim ${PVIM_SOURCES})
-target_link_libraries(pvim common)
 
 # 设置编译选项
 target_compile_options(pvim PRIVATE -Wall -Wextra)

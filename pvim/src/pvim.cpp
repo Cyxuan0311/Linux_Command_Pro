@@ -18,6 +18,7 @@ std::unique_ptr<Editor> g_editor;
 
 // 信号处理函数
 void handle_signal(int sig) {
+    (void)sig;
     if (g_editor) {
         g_editor->shutdown();
     }

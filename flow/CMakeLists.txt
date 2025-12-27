@@ -1,4 +1,4 @@
-add_executable(flow flow.c flow_parser.c flow_renderer.c flow_url.c flow_formatter.c flow_utils.c flow_emoji.c flow_syntax_highlighter.c flow_html.c)
+add_executable(flow flow.c flow_parser.c flow_renderer.c flow_url.c flow_formatter.c flow_utils.c flow_emoji.c flow_syntax_highlighter.c flow_html.c flow_content.c)
 target_link_libraries(flow common)
 
 # 检查是否有 libcurl

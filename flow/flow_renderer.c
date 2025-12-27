@@ -790,8 +790,76 @@ void render_markdown(const char *content, FlowOptions *opts) {
     free(content_copy);
 }
 
-// 使用分页器显示
-void display_with_pager(const char *content) {
+// 渲染 Markdown 内容到字符串缓冲区
+static void render_markdown_to_buffer(const char *content, FlowOptions *opts, char **output, size_t *output_size) {
+    if (content == NULL || opts == NULL || output == NULL) {
+        return;
+    }
+    
+    // 使用临时文件或内存缓冲区来捕获渲染输出
+    // 这里使用重定向 stdout 的方式
+    FILE *temp_file = tmpfile();
+    if (temp_file == NULL) {
+        return;
+    }
+    
+    // 保存原始 stdout
+    int saved_stdout = dup(STDOUT_FILENO);
+    if (saved_stdout == -1) {
+        fclose(temp_file);
+        return;
+    }
+    
+    // 重定向 stdout 到临时文件
+    if (dup2(fileno(temp_file), STDOUT_FILENO) == -1) {
+        close(saved_stdout);
+        fclose(temp_file);
+        return;
+    }
+    
+    // 渲染内容
+    render_markdown(content, opts);
+    fflush(stdout);
+    
+    // 恢复 stdout
+    dup2(saved_stdout, STDOUT_FILENO);
+    close(saved_stdout);
+    
+    // 读取临时文件内容
+    fseek(temp_file, 0, SEEK_END);
+    long size = ftell(temp_file);
+    fseek(temp_file, 0, SEEK_SET);
+    
+    if (size > 0) {
+        *output = (char *)malloc(size + 1);
+        if (*output != NULL) {
+            size_t read_result = fread(*output, 1, size, temp_file);
+            (void)read_result;  // 忽略返回值（已检查 size > 0）
+            (*output)[size] = '\0';
+            if (output_size != NULL) {
+                *output_size = size;
+            }
+        }
+    }
+    
+    fclose(temp_file);
+}
+
+// 使用分页器显示（使用渲染后的内容）
+void display_with_pager(const char *content, FlowOptions *opts) {
+    if (content == NULL || opts == NULL) {
+        return;
+    }
+    
+    // 渲染内容到缓冲区
+    char *rendered_content = NULL;
+    render_markdown_to_buffer(content, opts, &rendered_content, NULL);
+    
+    if (rendered_content == NULL) {
+        // 如果渲染失败，使用原始内容
+        rendered_content = strdup(content);
+    }
+    
     const char *pager = getenv("PAGER");
     if (pager == NULL) {
         pager = "less -R";  // 使用 less -R 支持 ANSI 颜色
@@ -799,11 +867,13 @@ void display_with_pager(const char *content) {
     
     FILE *pipe = popen(pager, "w");
     if (pipe != NULL) {
-        fprintf(pipe, "%s", content);
+        fprintf(pipe, "%s", rendered_content);
         pclose(pipe);
     } else {
         // 如果分页器失败，直接输出
-        printf("%s", content);
+        printf("%s", rendered_content);
     }
+    
+    free(rendered_content);
 }
 

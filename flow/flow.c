@@ -1,4 +1,5 @@
 #include "flow.h"
+#include "flow_content.h"
 #include "../include/common.h"
 #include <getopt.h>
 #include <unistd.h>
@@ -208,60 +209,27 @@ int main(int argc, char *argv[]) {
         return 0;
     }
     
-    // 读取内容
-    char *content = NULL;
-    bool is_code_file = false;
-    const char *file_ext = "";
-    
-    if (opts.from_stdin) {
-        content = read_stdin_content();
-    } else if (strlen(opts.filename) > 0) {
-        // 检查是否为 URL
-        if (is_url(opts.filename)) {
-            content = read_markdown_from_url(opts.filename);
-            // 从 URL 判断是否为代码文件
-            is_code_file = !is_markdown_file(opts.filename);
-            file_ext = get_file_extension(opts.filename);
-        } else {
-            content = read_file_content(opts.filename);
-            is_code_file = !is_markdown_file(opts.filename);
-            file_ext = get_file_extension(opts.filename);
+    // 读取并处理内容（统一入口，支持本地文件、URL、标准输入）
+    ContentInfo *content_info = read_and_process_content(&opts);
+    if (content_info == NULL) {
+        fprintf(stderr, "%s错误: 无法读取内容%s\n", COLOR_RED, COLOR_RESET);
+        if (!opts.from_stdin && strlen(opts.filename) == 0) {
+            print_help(argv[0]);
         }
-    } else {
-        fprintf(stderr, "%s错误: 请指定文件、URL 或使用 - 从标准输入读取%s\n", 
-                COLOR_RED, COLOR_RESET);
-        print_help(argv[0]);
         return 1;
     }
     
-    if (content == NULL) {
-        return 1;
-    }
-    
-    // 移除前端内容（frontmatter）
-    char *processed_content = remove_frontmatter(content);
-    free(content);
-    content = processed_content;
-    
-    // 如果是代码文件，包装成代码块
-    if (is_code_file && content != NULL) {
-        char *wrapped = wrap_code_block(content, file_ext);
-        if (wrapped != NULL) {
-            free(content);
-            content = wrapped;
-        }
-    }
-    
-    // 渲染内容
+    // 渲染内容（所有模式都使用相同的渲染逻辑）
     if (opts.use_pager) {
-        // 先渲染到字符串，然后传给分页器
-        // 简化实现：直接使用原始内容
-        display_with_pager(content);
+        // 分页器模式：先渲染，然后传给分页器
+        display_with_pager(content_info->content, &opts);
     } else {
-        render_markdown(content, &opts);
+        // 直接渲染模式
+        render_markdown(content_info->content, &opts);
     }
     
-    free(content);
+    // 释放内容
+    free_content_info(content_info);
     return 0;
 }
 

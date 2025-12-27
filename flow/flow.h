@@ -62,11 +62,8 @@ void print_help(const char *program_name);
 // 显示版本信息
 void print_version(void);
 
-// 读取文件内容
-char* read_file_content(const char *filename);
-
-// 读取标准输入内容
-char* read_stdin_content(void);
+// 注意：read_file_content 和 read_stdin_content 已移至 flow_content.c
+// 使用 read_and_process_content() 作为统一入口
 
 // URL 相关函数
 bool is_url(const char *path);
@@ -120,8 +117,8 @@ const char* get_style_color(const char *element, StyleType style);
 // 检测终端背景色（深色/浅色）
 StyleType detect_terminal_style(void);
 
-// 使用分页器显示
-void display_with_pager(const char *content);
+// 使用分页器显示（使用渲染后的内容）
+void display_with_pager(const char *content, FlowOptions *opts);
 
 #endif // FLOW_H
 

@@ -64,6 +64,9 @@ static const char ASCII_MIXED[] = " .:;+=xX$&";
 // 默认启用颜色
 #define DEFAULT_COLOR 1
 
+// 默认分辨率倍数
+#define DEFAULT_RESOLUTION_SCALE 1.0f
+
 // 颜色模式
 #define COLOR_MODE_8BIT  0  // 8/16色模式
 #define COLOR_MODE_24BIT 1  // 24位真彩色模式
@@ -116,12 +119,13 @@ void print_help(const char *program_name) {
     printf("  图片文件    要显示的图片文件路径 (支持JPG, PNG格式)\n");
     printf("  宽度        可选，ASCII图片的宽度 (默认: %d)\n\n", DEFAULT_WIDTH);
     printf("选项:\n");
-    printf("  -h, --help     显示此帮助信息\n");
-    printf("  -v, --version  显示版本信息\n");
-    printf("  -c, --color    启用颜色显示 (默认)\n");
-    printf("  -n, --no-color 禁用颜色显示\n");
-    printf("  -w, --width    指定宽度\n");
-    printf("  -m, --mode     指定字符集模式 (默认: unicode)\n\n");
+    printf("  -h, --help        显示此帮助信息\n");
+    printf("  -v, --version     显示版本信息\n");
+    printf("  -c, --color       启用颜色显示 (默认)\n");
+    printf("  -n, --no-color    禁用颜色显示\n");
+    printf("  -w, --width       指定宽度\n");
+    printf("  -m, --mode        指定字符集模式 (默认: unicode)\n");
+    printf("  -r, --resolution  分辨率倍数 (默认: 1.0, 建议: 1.5-3.0)\n\n");
     printf("字符集模式:\n");
     printf("  unicode         Unicode块状字符 (默认，原有模式) █▓▒░\n");
     printf("  unicode-full    Unicode完整块状字符集 █▓▒░▄▀\n");
@@ -139,6 +143,8 @@ void print_help(const char *program_name) {
     printf("  %s --mode ascii-simple image.jpg\n", program_name);
     printf("  %s --mode ascii-numbers image.png\n", program_name);
     printf("  %s --mode unicode-full image.jpg\n", program_name);
+    printf("  %s --resolution 2.0 image.jpg\n", program_name);
+    printf("  %s -r 1.5 --width 150 image.png\n", program_name);
 }
 
 // 版本信息
@@ -422,7 +428,7 @@ const char* get_charset_mode_name(charset_mode_t mode) {
 }
 
 // 显示图片
-int display_image(const char *filename, int width, int use_color, charset_mode_t charset_mode) {
+int display_image(const char *filename, int width, int use_color, charset_mode_t charset_mode, float resolution_scale) {
     int x, y, n;
     unsigned char *data = stbi_load(filename, &x, &y, &n, 0);
     
@@ -452,68 +458,173 @@ int display_image(const char *filename, int width, int use_color, charset_mode_t
         printf(" ✨");
     }
     printf("\n");
-    printf("🔤 字符集模式: %s\n\n", get_charset_mode_name(charset_mode));
+    printf("🔤 字符集模式: %s\n", get_charset_mode_name(charset_mode));
+    if (resolution_scale != 1.0f) {
+        printf("🔍 分辨率倍数: %.1fx\n", resolution_scale);
+    }
+    printf("\n");
+    
+    // 应用分辨率倍数到宽度
+    int effective_width = (int)(width * resolution_scale);
     
     // 计算缩放比例 - 提高分辨率
-    float scale = (float)width / x;
-    int new_height = (int)(y * scale * 0.6); // 字符高度约为宽度的0.6倍，提高分辨率
+    float scale = (float)effective_width / x;
+    int new_height = (int)(y * scale * 0.6); // 字符高度约为宽度的0.6倍
     
     if (new_height <= 0) new_height = 1;
     
-    printf("📐 缩放后尺寸: %dx%d\n\n", width, new_height);
+    printf("📐 缩放后尺寸: %dx%d (有效宽度: %d)\n\n", effective_width, new_height, effective_width);
     
     // 生成ASCII艺术 - 使用改进的采样算法
+    // 根据分辨率倍数调整采样区域大小
+    int base_sample_size = 2;
+    int sample_size = (int)(base_sample_size * resolution_scale);
+    if (sample_size < 1) sample_size = 1;
+    if (sample_size > 5) sample_size = 5; // 限制最大采样区域，避免性能问题
+    
     for (int i = 0; i < new_height; i++) {
-        for (int j = 0; j < width; j++) {
-            // 计算原始图片中的对应位置
-            int orig_x = (int)(j / scale);
-            int orig_y = (int)(i / scale / 0.6);
+        for (int j = 0; j < effective_width; j++) {
+            // 计算原始图片中的对应位置（使用双线性插值提高质量）
+            float orig_x_f = (float)j / scale;
+            float orig_y_f = (float)i / scale / 0.6;
+            
+            int orig_x = (int)orig_x_f;
+            int orig_y = (int)orig_y_f;
             
             if (orig_x >= x) orig_x = x - 1;
             if (orig_y >= y) orig_y = y - 1;
             
-            // 使用区域采样提高质量
-            int sample_size = 2; // 采样区域大小
+            // 使用区域采样提高质量（根据分辨率倍数调整采样区域）
             int r_sum = 0, g_sum = 0, b_sum = 0, count = 0;
             
-            for (int dy = -sample_size/2; dy <= sample_size/2; dy++) {
-                for (int dx = -sample_size/2; dx <= sample_size/2; dx++) {
-                    int sample_x = orig_x + dx;
-                    int sample_y = orig_y + dy;
+            // 如果分辨率倍数较高，使用双线性插值
+            if (resolution_scale > 1.5f) {
+                // 双线性插值
+                int x1 = orig_x;
+                int y1 = orig_y;
+                int x2 = (x1 + 1 < x) ? x1 + 1 : x1;
+                int y2 = (y1 + 1 < y) ? y1 + 1 : y1;
+                
+                // 确保坐标在有效范围内
+                if (x1 < 0) x1 = 0;
+                if (x1 >= x) x1 = x - 1;
+                if (x2 < 0) x2 = 0;
+                if (x2 >= x) x2 = x - 1;
+                if (y1 < 0) y1 = 0;
+                if (y1 >= y) y1 = y - 1;
+                if (y2 < 0) y2 = 0;
+                if (y2 >= y) y2 = y - 1;
+                
+                float fx = orig_x_f - (int)orig_x_f;
+                float fy = orig_y_f - (int)orig_y_f;
+                
+                // 边界处理：如果接近边界，fx或fy可能为负或大于1
+                if (fx < 0) fx = 0;
+                if (fx > 1) fx = 1;
+                if (fy < 0) fy = 0;
+                if (fy > 1) fy = 1;
+                
+                // 获取四个角点的颜色
+                int idx11 = (y1 * x + x1) * n;
+                int idx12 = (y1 * x + x2) * n;
+                int idx21 = (y2 * x + x1) * n;
+                int idx22 = (y2 * x + x2) * n;
+                
+                // 确保索引有效
+                if (idx11 >= 0 && idx11 < x * y * n &&
+                    idx12 >= 0 && idx12 < x * y * n &&
+                    idx21 >= 0 && idx21 < x * y * n &&
+                    idx22 >= 0 && idx22 < x * y * n) {
                     
-                    if (sample_x >= 0 && sample_x < x && sample_y >= 0 && sample_y < y) {
-                        int pixel_index = (sample_y * x + sample_x) * n;
-                        r_sum += data[pixel_index];
-                        g_sum += data[pixel_index + 1];
-                        b_sum += data[pixel_index + 2];
-                        count++;
+                    // 双线性插值计算
+                    unsigned char r1 = (unsigned char)(data[idx11] * (1 - fx) + data[idx12] * fx);
+                    unsigned char g1 = (unsigned char)(data[idx11 + 1] * (1 - fx) + data[idx12 + 1] * fx);
+                    unsigned char b1 = (unsigned char)(data[idx11 + 2] * (1 - fx) + data[idx12 + 2] * fx);
+                    
+                    unsigned char r2 = (unsigned char)(data[idx21] * (1 - fx) + data[idx22] * fx);
+                    unsigned char g2 = (unsigned char)(data[idx21 + 1] * (1 - fx) + data[idx22 + 1] * fx);
+                    unsigned char b2 = (unsigned char)(data[idx21 + 2] * (1 - fx) + data[idx22 + 2] * fx);
+                    
+                    unsigned char r = (unsigned char)(r1 * (1 - fy) + r2 * fy);
+                    unsigned char g = (unsigned char)(g1 * (1 - fy) + g2 * fy);
+                    unsigned char b = (unsigned char)(b1 * (1 - fy) + b2 * fy);
+                    
+                    // 转换为灰度
+                    unsigned char gray = rgb_to_gray(r, g, b);
+                    
+                    // 根据字符集模式获取字符
+                    char* display_char = get_char_for_gray(gray, charset_mode);
+                    
+                    // 输出字符
+                    if (use_color) {
+                        char color_buffer[64];
+                        get_color_code(r, g, b, color_mode, color_buffer, sizeof(color_buffer));
+                        printf("%s%s%s", color_buffer, display_char, RESET);
+                    } else {
+                        printf("%s", display_char);
                     }
+                } else {
+                    // 如果索引无效，使用最近邻采样
+                    int pixel_index = (orig_y * x + orig_x) * n;
+                    if (pixel_index >= 0 && pixel_index < x * y * n) {
+                        unsigned char r = data[pixel_index];
+                        unsigned char g = data[pixel_index + 1];
+                        unsigned char b = data[pixel_index + 2];
+                        unsigned char gray = rgb_to_gray(r, g, b);
+                        char* display_char = get_char_for_gray(gray, charset_mode);
+                        
+                        if (use_color) {
+                            char color_buffer[64];
+                            get_color_code(r, g, b, color_mode, color_buffer, sizeof(color_buffer));
+                            printf("%s%s%s", color_buffer, display_char, RESET);
+                        } else {
+                            printf("%s", display_char);
+                        }
+                    } else {
+                        printf(" ");
+                    }
+                }
+            } else {
+                // 使用区域采样（原有方法，适合低分辨率倍数）
+                for (int dy = -sample_size/2; dy <= sample_size/2; dy++) {
+                    for (int dx = -sample_size/2; dx <= sample_size/2; dx++) {
+                        int sample_x = orig_x + dx;
+                        int sample_y = orig_y + dy;
+                        
+                        if (sample_x >= 0 && sample_x < x && sample_y >= 0 && sample_y < y) {
+                            int pixel_index = (sample_y * x + sample_x) * n;
+                            r_sum += data[pixel_index];
+                            g_sum += data[pixel_index + 1];
+                            b_sum += data[pixel_index + 2];
+                            count++;
+                        }
+                    }
+                }
+                
+                if (count > 0) {
+                    unsigned char r = r_sum / count;
+                    unsigned char g = g_sum / count;
+                    unsigned char b = b_sum / count;
+                    
+                    // 转换为灰度
+                    unsigned char gray = rgb_to_gray(r, g, b);
+                    
+                    // 根据字符集模式获取字符
+                    char* display_char = get_char_for_gray(gray, charset_mode);
+                    
+                    // 输出字符
+                    if (use_color) {
+                        char color_buffer[64];
+                        get_color_code(r, g, b, color_mode, color_buffer, sizeof(color_buffer));
+                        printf("%s%s%s", color_buffer, display_char, RESET);
+                    } else {
+                        printf("%s", display_char);
+                    }
+                } else {
+                    printf(" ");
                 }
             }
             
-            if (count > 0) {
-                unsigned char r = r_sum / count;
-                unsigned char g = g_sum / count;
-                unsigned char b = b_sum / count;
-                
-                // 转换为灰度
-                unsigned char gray = rgb_to_gray(r, g, b);
-                
-                // 根据字符集模式获取字符
-                char* display_char = get_char_for_gray(gray, charset_mode);
-                
-                // 输出字符
-                if (use_color) {
-                    char color_buffer[64];
-                    // 使用24位真彩色或256色模式
-                    get_color_code(r, g, b, color_mode, color_buffer, sizeof(color_buffer));
-                    printf("%s%s%s", color_buffer, display_char, RESET);
-                } else {
-                    printf("%s", display_char);
-                }
-            } else {
-                printf(" ");
-            }
         }
         printf("\n");
     }
@@ -529,6 +640,7 @@ int main(int argc, char *argv[]) {
     int width = DEFAULT_WIDTH;
     int use_color = DEFAULT_COLOR; // 默认启用颜色
     charset_mode_t charset_mode = CHARSET_UNICODE_BLOCKS; // 默认使用Unicode块状字符（原有模式）
+    float resolution_scale = DEFAULT_RESOLUTION_SCALE; // 默认分辨率倍数
     char *filename = NULL;
     
     // 解析命令行参数
@@ -560,6 +672,19 @@ int main(int argc, char *argv[]) {
             } else {
                 fprintf(stderr, "❌ 错误: --mode 需要指定字符集模式\n");
                 fprintf(stderr, "使用 '%s --help' 查看可用的字符集模式\n", argv[0]);
+                return 1;
+            }
+        } else if (strcmp(argv[i], "-r") == 0 || strcmp(argv[i], "--resolution") == 0) {
+            if (i + 1 < argc) {
+                resolution_scale = (float)atof(argv[++i]);
+                if (resolution_scale <= 0.0f || resolution_scale > 5.0f) {
+                    fprintf(stderr, "❌ 错误: 分辨率倍数必须在 0.1 到 5.0 之间\n");
+                    fprintf(stderr, "建议使用 1.5-3.0 之间的值以获得最佳效果\n");
+                    return 1;
+                }
+            } else {
+                fprintf(stderr, "❌ 错误: --resolution 需要指定倍数\n");
+                fprintf(stderr, "使用 '%s --help' 查看帮助信息\n", argv[0]);
                 return 1;
             }
         } else if (argv[i][0] != '-') {
@@ -596,5 +721,5 @@ int main(int argc, char *argv[]) {
     fclose(file);
     
     // 显示图片
-    return display_image(filename, width, use_color, charset_mode);
+    return display_image(filename, width, use_color, charset_mode, resolution_scale);
 }
